@@ -721,9 +721,12 @@ namespace Placenote
                 return;
             }
 
-#if UNITY_EDITOR
+            #if UNITY_EDITOR
+            // If running the project within the Unity Editor then change this to any placeId you have within the Assets/jsonMaps.json file.
+            // If there are no placeIds in the Assets/jsonMaps.json file then host a room and create a map within the editor.
+            // This will create a map and a placeId which you can place below.
             LatestMapId = "15dad15b-84a6-48e6-ae85-562919347455";
-#endif
+            #endif
 
             LibPlacenote.Instance.LoadMap (LatestMapId, (completed, faulted, percentage) =>
             {
