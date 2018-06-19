@@ -21,6 +21,11 @@ public class MultiplayerSampleView : PlacenotePunMultiplayerBehaviour
     private void OnEnable ()
     {
         Reset ();
+        Debug.LogWarning ("Make sure these OnClick functions are set for the following child objects of MultiplayerSampleView:\n" +
+                   "HostRoomButton: PlacenoteMultiplayerManager.HostRoom (\"TextForHostRoomFunction\")\n" +
+                   "StartGameButton: PlacenoteMultiplayerManager.StartGame ()\n" +
+                   "FinishMappingButton: PlacenoteMultiplayerManager.StopMapping ()\n" +
+                   "BackButton: PlacenoteMultiplayerManager.QuitGame ()\n");
     }
 
     /// <summary>
