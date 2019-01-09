@@ -28,7 +28,7 @@ using System.IO;
 public static class PhotonNetwork
 {
     /// <summary>Version number of PUN. Also used in GameVersion to separate client version from each other.</summary>
-    public const string versionPUN = "1.90";
+    public const string versionPUN = "1.92";
 
     /// <summary>Version string for your this build. Can be used to separate incompatible clients. Sent during connect.</summary>
     /// <remarks>This is only sent when you connect so that is also the place you set it usually (e.g. in ConnectUsingSettings).</remarks>
@@ -816,7 +816,6 @@ public static class PhotonNetwork
     /// </summary>
     /// <remarks>
     /// This can be useful to sync actions and events on all clients in one room.
-    /// The timestamp is based on the server's Environment.TickCount.
     ///
     /// It will overflow from a positive to a negative value every so often, so
     /// be careful to use only time-differences to check the time delta when things
@@ -830,20 +829,14 @@ public static class PhotonNetwork
         {
             if (offlineMode)
             {
-                if (UsePreciseTimer && startupStopwatch != null && startupStopwatch.IsRunning)
-                {
-                    return (int)startupStopwatch.ElapsedMilliseconds;
-                }
-                return Environment.TickCount;
+                return (int)startupStopwatch.ElapsedMilliseconds;   
             }
 
             return networkingPeer.ServerTimeInMilliSeconds;
         }
     }
 
-	/// <summary>If true, PUN will use a Stopwatch to measure time since start/connect. This is more precise than the Environment.TickCount used by default.</summary>
-    private static bool UsePreciseTimer = false;
-    static Stopwatch startupStopwatch;
+	static Stopwatch startupStopwatch;
 
     /// <summary>
     /// Defines how many seconds PUN keeps the connection, after Unity's OnApplicationPause(true) call. Default: 60 seconds.
@@ -1081,7 +1074,7 @@ public static class PhotonNetwork
     /// <summary>Register your RaiseEvent handling methods here by using "+=".</summary>
     /// <remarks>Any eventCode &lt; 200 will be forwarded to your delegate(s).</remarks>
     /// <see cref="RaiseEvent"/>
-    public static EventCallback OnEventCall;
+	public static event EventCallback OnEventCall;
 
 
     internal static int lastUsedViewSubId = 0;  // each player only needs to remember it's own (!) last used subId to speed up assignment
@@ -1145,13 +1138,9 @@ public static class PhotonNetwork
         networkingPeer.AuthMode = AuthModeOption.Auth;
         #endif
 
-        if (UsePreciseTimer)
-        {
-            Debug.Log("Using Stopwatch as precision timer for PUN.");
-            startupStopwatch = new Stopwatch();
-            startupStopwatch.Start();
-            networkingPeer.LocalMsTimestampDelegate = () => (int)startupStopwatch.ElapsedMilliseconds;
-        }
+        startupStopwatch = new Stopwatch();
+        startupStopwatch.Start();
+        networkingPeer.LocalMsTimestampDelegate = () => (int)startupStopwatch.ElapsedMilliseconds;
 
         // Local player
         CustomTypes.Register();
@@ -2155,6 +2144,7 @@ public static class PhotonNetwork
         if (offlineMode)
         {
             offlineModeRoom = null;
+            networkingPeer.State = ClientState.PeerCreated;
             NetworkingPeer.SendMonoMessage(PhotonNetworkingMessage.OnLeftRoom);
         }
         else
@@ -3222,8 +3212,10 @@ public static class PhotonNetwork
     /// </param>
     public static void LoadLevel(int levelNumber)
     {
+		networkingPeer.AsynchLevelLoadCall = false;
+
 		if (PhotonNetwork.automaticallySyncScene) {
-			networkingPeer.SetLevelInPropsIfSynced (levelNumber);
+			networkingPeer.SetLevelInPropsIfSynced (levelNumber,true);
 		}
 
         PhotonNetwork.isMessageQueueRunning = false;
@@ -3252,6 +3244,8 @@ public static class PhotonNetwork
 	/// </param>
 	public static AsyncOperation LoadLevelAsync(int levelNumber)
 	{
+		networkingPeer.AsynchLevelLoadCall = true;
+
 		if (PhotonNetwork.automaticallySyncScene) {
 			networkingPeer.SetLevelInPropsIfSynced (levelNumber,true);
 		}
@@ -3281,8 +3275,10 @@ public static class PhotonNetwork
     /// </param>
     public static void LoadLevel(string levelName)
     {
+		networkingPeer.AsynchLevelLoadCall = false;
+
 		if (PhotonNetwork.automaticallySyncScene) {
-			networkingPeer.SetLevelInPropsIfSynced (levelName);
+			networkingPeer.SetLevelInPropsIfSynced (levelName,true);
 		}
 
         PhotonNetwork.isMessageQueueRunning = false;
@@ -3312,6 +3308,8 @@ public static class PhotonNetwork
 	/// <param name="mode">LoadSceneMode either single or additive</param>
 	public static AsyncOperation LoadLevelAsync(string levelName)
 	{
+		networkingPeer.AsynchLevelLoadCall = true;
+
 		if (PhotonNetwork.automaticallySyncScene) {
 			networkingPeer.SetLevelInPropsIfSynced (levelName,true);
 		}
@@ -3358,6 +3356,17 @@ public static class PhotonNetwork
     {
         return networkingPeer.WebRpc(name, parameters);
     }
+
+	public static bool CallEvent(byte eventCode, object content, int senderId)
+	{
+		if (PhotonNetwork.OnEventCall != null)
+		{
+			PhotonNetwork.OnEventCall(eventCode, content, senderId);
+			return true;
+		}
+
+		return false;
+	}
 
 
 #if UNITY_EDITOR
