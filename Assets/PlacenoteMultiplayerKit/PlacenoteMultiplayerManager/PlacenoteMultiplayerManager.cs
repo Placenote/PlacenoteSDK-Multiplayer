@@ -185,8 +185,6 @@ namespace Placenote
         public UnityEvent OnARKitInitialized = new UnityEvent ();
         private UnityARSessionNativeInterface mSession;
 
-        private bool mARKitInit = false;
-
         #endregion ARKit initialization
 
         #region Local player info
@@ -664,9 +662,9 @@ namespace Placenote
             });
         }
 
-#endregion > Mapping session
+        #endregion > Mapping session
 
-#region > Loading Map
+        #region > Loading Map
 
         [PunRPC]
         public void LoadMapRPC ()
@@ -720,7 +718,7 @@ namespace Placenote
         }
         #endregion > Loading Map
 
-#region > Quiting Game
+        #region > Quiting Game
 
         /// <summary>
         /// Stops Placenote session, leaves photon room, and resets player info.
@@ -841,7 +839,6 @@ namespace Placenote
             mSession.RunWithConfig (config);
         }
 
-
-#endregion ARKit
+        #endregion ARKit
     }
 }
